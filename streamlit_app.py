@@ -40,7 +40,7 @@ st.session_state.expr_input = expr_input
 operation = st.selectbox("Select Operation", [
     "Simplify", "Evaluate Limit", "Derivative", "Nth Derivative", "Integral",
     "Nth Integral", "Closed Integral", "Multiple Integral", "Solve Equation",
-    "Trigonometric Identity", "2D Plot", "3D Plot", "Probability", "Trigonometric Evaluation"
+    "Trigonometric Identity", "2D Plot", "3D Plot", "Probability", "Trigonometric Evaluation", "GCD / LCM"
 ])
 
 # Update selected operation in session state
@@ -57,7 +57,20 @@ try:
     expr = sympify(raw_expr)
 
     if operation == "Simplify":
-        result = simplify(expr)
+        try:
+            # First attempt regular simplification
+            simplified = simplify(expr)
+
+            # Expand if it's a power of sum or product of expressions
+            if expr.is_Pow or expr.is_Mul or expr.is_Add:
+                expanded = expand(expr)
+                result = simplified if simplified != expr else expanded
+            else:
+                result = simplified
+
+        except Exception as e:
+            result = f"Simplify error: {e}"
+
 
     elif operation == "Derivative":
         result = diff(expr, x)
@@ -186,6 +199,25 @@ try:
         Z = lambdify((x, y), expr, 'numpy')(X, Y)
         ax.plot_surface(X, Y, Z, cmap='viridis')
         st.pyplot(fig)
+    
+    elif operation == "GCD / LCM":
+        gcd_lcm_op = st.selectbox("Select Operation", ["GCD (HCF / GCF)", "LCM"])
+        nums_input = st.text_input("Enter numbers separated by commas", value="12,18,24")
+        try:
+            nums = list(map(int, nums_input.split(",")))
+            if gcd_lcm_op == "GCD (HCF / GCF)":
+                result = math.gcd(nums[0], nums[1])
+                for num in nums[2:]:
+                    result = math.gcd(result, num)
+            elif gcd_lcm_op == "LCM":
+                def lcm(a, b):
+                    return abs(a*b) // math.gcd(a, b)
+                result = nums[0]
+                for num in nums[1:]:
+                    result = lcm(result, num)
+        except:
+            result = "Invalid input. Please enter integers separated by commas."
+
 
     elif operation == "Probability":
         prob_op = st.selectbox("Select Probability Operation", [
